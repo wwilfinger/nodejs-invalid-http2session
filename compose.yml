@@ -1,0 +1,97 @@
+# You need to generate certificates before any of this will work.
+# See <repo root>/cert.
+#
+# client
+# This is the client. It connects to example.cloudapis.test which by docker
+# magic is the "server" service in this compose file
+#
+# server
+# This is the server. It listens on port 50051. Because
+# networks.main.aliases is set to example.cloudapis.test and we have
+# (hopefully) generated a certificate for *.cloudapis.net, the client
+# should be able to create a TLS connection to this server.
+#
+# docker compose up --build should get this going
+#
+# https://docs.docker.com/compose/migrate/
+# This config should work with any Compose V2
+#
+# Here's my docker version:
+#
+# % docker version
+# Client: Docker Engine - Community
+#  Version:           24.0.5
+#  API version:       1.43
+#  Go version:        go1.20.6
+#  Git commit:        ced0996
+#  Built:             Fri Jul 21 20:37:15 2023
+#  OS/Arch:           linux/amd64
+#  Context:           default
+#
+# Server: Docker Engine - Community
+#  Engine:
+#   Version:          24.0.5
+#   API version:      1.43 (minimum version 1.12)
+#   Go version:       go1.20.6
+#   Git commit:       a61e2b4
+#   Built:            Fri Jul 21 20:35:40 2023
+#   OS/Arch:          linux/amd64
+#   Experimental:     false
+#  containerd:
+#   Version:          1.6.22
+#   GitCommit:        8165feabfdfe38c65b599c4993d227328c231fca
+#  runc:
+#   Version:          1.1.8
+#   GitCommit:        v1.1.8-0-g82f18fe
+#  docker-init:
+#   Version:          0.19.0
+#   GitCommit:        de40ad0
+services:
+  client:
+    build: ./client
+    # uncomment to leave this container up if you want to get a shell with
+    # docker compose exec client bash
+    # entrypoint: ["/bin/bash"]
+    # command: ["-c", "sleep infinity"]
+    #
+    # `strace -e 'trace!=all` will show the SIGPIPE
+    command: ["strace", "-e", "trace=!all", "node", "./index.js"]
+    environment:
+      APP_CACERT: "/etc/ssl/certs/ca-cert.pem"
+      APP_AUTHORITY: "https://example.cloudapis.test:50051"
+      NODE_DEBUG: "http2,tls,net"
+    configs:
+      - source: ca-cert
+        target: /etc/ssl/certs/ca-cert.pem
+    networks:
+      - main
+
+  server:
+    build: ./server
+    # deploy:
+    #   replicas: 3
+    environment:
+      APP_PORT: "50051"
+      APP_CONNECTION_TIMEOUT: "1ms"
+      APP_SERVER_CERT: "/etc/ssl/certs/server-cert.pem"
+      APP_SERVER_KEY: "/etc/ssl/private/server-key.pem"
+    configs:
+      - source: server-cert
+        target: /etc/ssl/certs/server-cert.pem
+      - source: server-key
+        target: /etc/ssl/private/server-key.pem
+    networks:
+      main:
+        aliases:
+          - example.cloudapis.test
+
+configs:
+  ca-cert:
+    file: "./cert/ca-cert.pem"
+  server-cert:
+    file: "./cert/server-cert.pem"
+  server-key:
+    file: "./cert/server-key.pem"
+
+networks:
+  main:

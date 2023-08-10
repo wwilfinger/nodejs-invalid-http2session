@@ -1,0 +1,11 @@
+Running locally
+
+You need to generate certificates first. See <repo root>/cert
+
+short example
+
+node ./src/example.js
+
+same idea, but more event listeners and logging. reads from env to configure authority and certificate paths. Used in the compose file.
+
+node ./src/index.js

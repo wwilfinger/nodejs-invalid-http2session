@@ -1,0 +1,12 @@
+Running locally
+
+You need to generate certificates first. See <repo root>/cert
+
+go run server.go
+
+There's a handful of configurable settings read in from the environment. The one interesting one will change the read timeout for the server.
+
+% APP_CONNECTION_TIMEOUT=1000ms go run server.go
+Go http2 server
+2023/08/11 21:01:53 ConnectionTimeout: 1s
+2023/08/11 21:01:53 listening on :50051
